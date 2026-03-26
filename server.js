@@ -38,6 +38,16 @@ app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/registrations', registrationRoutes);
 
+
+app.use((err, req, res, next) => {
+  console.error("GLOBAL ERROR:", err);
+
+  if (res.headersSent) {
+    return next(err); // 🔥 prevents crash
+  }
+
+  res.status(500).json({ error: err.message });
+});
 // socket connection
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
