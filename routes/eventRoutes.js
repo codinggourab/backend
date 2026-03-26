@@ -12,16 +12,30 @@ router.get('/', async (req, res) => {
 // Create event (REAL-TIME)
 router.post('/', async (req, res) => {
   try {
+    console.log("BODY RECEIVED:", req.body);
+
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ error: "Empty request body" });
+    }
+
+    if (req.body.image && req.body.image.startsWith('data:image')) {
+      return res.status(400).json({
+        error: "Base64 images not allowed. Use image URL."
+      });
+    }
+
     const event = await Event.create(req.body);
 
-    // ✅ emit to all clients
-    const io = req.app.get('io');
-    io.emit('new_event', event);
+    // ✅ IMPORTANT FIX
+    return res.status(201).json(event);
 
-    res.status(201).json(event);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    console.error("🔥 EVENT ERROR:", err);
+
+    // ✅ ALSO IMPORTANT
+    if (!res.headersSent) {
+      return res.status(500).json({ error: err.message });
+    }
   }
 });
 
