@@ -59,7 +59,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // ✅ Delete event (with user)
 // =====================
 
-import authMiddleware from '../middleware/authMiddleware.js';
+
 
 // DELETE event
 router.delete('/:id', authMiddleware, async (req, res) => {
