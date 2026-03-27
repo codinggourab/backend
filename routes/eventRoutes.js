@@ -1,16 +1,30 @@
 import express from 'express';
 import Event from '../models/Event.js';
+import authMiddleware from '../middleware/authMiddleware.js'; // ✅ ADD THIS
 
 const router = express.Router();
 
-// Get all events
-router.get('/', async (req, res) => {
-  const events = await Event.find().sort({ createdAt: -1 });
-  res.json(events);
+
+// =====================
+// ✅ Get ONLY my events
+// =====================
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const events = await Event.find({
+      organizerId: req.user.id // 🔥 FILTER HERE
+    }).sort({ createdAt: -1 });
+
+    res.json(events);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Create event (REAL-TIME)
-router.post('/', async (req, res) => {
+
+// =====================
+// ✅ Create event (with user)
+// =====================
+router.post('/', authMiddleware, async (req, res) => {
   try {
     console.log("BODY RECEIVED:", req.body);
 
@@ -24,19 +38,50 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const event = await Event.create(req.body);
+    const event = await Event.create({
+      ...req.body,
+      organizerId: req.user.id,     // 🔥 IMPORTANT
+      organizerName: req.user.name  // 🔥 OPTIONAL
+    });
 
-    // ✅ IMPORTANT FIX
     return res.status(201).json(event);
 
   } catch (err) {
     console.error("🔥 EVENT ERROR:", err);
 
-    // ✅ ALSO IMPORTANT
     if (!res.headersSent) {
       return res.status(500).json({ error: err.message });
     }
   }
 });
 
+// =====================
+// ✅ Delete event (with user)
+// =====================
+
+import authMiddleware from '../middleware/authMiddleware.js';
+
+// DELETE event
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    // 🔐 Only organizer can delete
+    if (event.organizerId !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    await event.deleteOne();
+
+    res.json({ msg: 'Event deleted successfully' });
+
+  } catch (err) {
+    console.error("DELETE ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 export default router;
