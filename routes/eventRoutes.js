@@ -6,21 +6,26 @@ const router = express.Router();
 
 
 // =====================
-// ✅ Get ONLY my events
+// ✅ Get all events
 // =====================
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const events = await Event.find({
-      organizerId: req.user.id // 🔥 FILTER HERE
-    }).sort({ createdAt: -1 });
-
+    const events = await Event.find().sort({ createdAt: -1 });
     res.json(events);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-
+// 🌍 Public events (for explore page)
+router.get('/all', async (req, res) => {
+  try {
+    const events = await Event.find().sort({ createdAt: -1 });
+    res.json(events);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // =====================
 // ✅ Create event (with user)
 // =====================
